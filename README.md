@@ -1,0 +1,5 @@
+# pack-workspace
+
+## License
+
+MIT

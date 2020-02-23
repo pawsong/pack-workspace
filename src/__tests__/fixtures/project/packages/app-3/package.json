@@ -1,0 +1,10 @@
+{
+  "name": "@test/app-3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@test/lib-1": "*",
+    "@test/lib-2": "*"
+  }
+}
