@@ -49,7 +49,11 @@ export async function pack({ workspaces, cwd, dir, filename }: PackOptions) {
   const pkgName = path.resolve(cwd, 'package.json')
   const pkg = require(pkgName)
   if (!pkg.name) {
-    throw new Error(`Package doesn't have a name.`)
+    throw new Error(`Root package doesn't have a name.`)
+  }
+
+  if (!pkg.version) {
+    throw new Error(`Root package doesn't have a version.`)
   }
 
   const output = stripAnsi(
