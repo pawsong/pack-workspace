@@ -7,6 +7,7 @@ import mkdirp from 'mkdirp'
 import rimraf from 'rimraf'
 import stripAnsi from 'strip-ansi'
 import toposort from 'toposort'
+import mv from 'mv'
 
 interface PackOptions {
   workspaces: string[]
@@ -27,9 +28,15 @@ function generateRandomString() {
   return Math.random().toString(36).substring(7)
 }
 
+function renameSync(from: string, to: string) {
+  return new Promise((resolve, reject) => {
+    mv(from, to, err => err ? reject(err) : resolve())
+  })
+}
+
 function moveDir(from: string, to: string) {
   mkdirp.sync(path.resolve(to, '..'))
-  fs.renameSync(from, to)
+  return renameSync(from, to)
 }
 
 function packPackage(dir: string) {
@@ -118,7 +125,7 @@ export async function pack({ workspaces, cwd, dir, filename }: PackOptions) {
     const pkgPath = path.resolve(cwd, workspace.location)
     const packedPath = packPackage(pkgPath)
     const outputPath = path.resolve(retPkg, workspace.location)
-    moveDir(path.resolve(packedPath, 'package'), outputPath)
+    await moveDir(path.resolve(packedPath, 'package'), outputPath)
   }
 
   const name = pkg.name[0] === '@'
@@ -127,7 +134,7 @@ export async function pack({ workspaces, cwd, dir, filename }: PackOptions) {
     : pkg.name
 
   if (dir) {
-    fs.renameSync(ret, dir)
+    await renameSync(ret, dir)
     return
   }
 

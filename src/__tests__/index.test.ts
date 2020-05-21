@@ -11,18 +11,18 @@ describe('pack-workspace', () => {
     rimraf.sync(__dirname + '/fixtures/**/*.tgz')
   })
 
-  it('creates pack tarball', () => {
+  it('creates pack tarball', async () => {
     const filename = 'test-project-v1.0.0.tgz'
     const filepath = path.resolve(__dirname, 'fixtures', 'project', filename)
     expect(fs.existsSync(filepath)).toBe(false)
-    pack({ workspaces: ['@test/app-1', '@test/app-2'], cwd: __dirname + '/fixtures/project' })
+    await pack({ workspaces: ['@test/app-1', '@test/app-2'], cwd: __dirname + '/fixtures/project' })
     expect(fs.existsSync(filepath)).toBe(true)
   })
 
-  it('creates pack directory', () => {
+  it('creates pack directory', async () => {
     const dir = tmp.dirSync()
 
-    pack({
+    await pack({
       workspaces: ['@test/app-1', '@test/app-2'],
       cwd: __dirname + '/fixtures/project',
       dir: dir.name,
