@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@test/lib-1": "*"
+    "@test/lib-1": "*",
+    "@test/lib-3": "*"
   }
 }

@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import mkdirp from 'mkdirp'
 import rimraf from 'rimraf'
 import stripAnsi from 'strip-ansi'
-import mv from 'mv'
+import toposort from 'toposort'
 
 interface PackOptions {
   workspaces: string[]
@@ -27,22 +27,16 @@ function generateRandomString() {
   return Math.random().toString(36).substring(7)
 }
 
-function renameSync(from: string, to: string) {
-  return new Promise((resolve, reject) => {
-    mv(from, to, err => err ? reject(err) : resolve())
-  })
-}
-
 function moveDir(from: string, to: string) {
   mkdirp.sync(path.resolve(to, '..'))
-  return renameSync(from, to)
+  fs.renameSync(from, to)
 }
 
 function packPackage(dir: string) {
   const tmpdir = tmp.dirSync({ unsafeCleanup: true })
   const outputFile = generateRandomString()
   const outputPath = path.resolve(tmpdir.name, `${outputFile}.tar.gz`)
-  execSync(`yarn pack --filename ${outputPath}`, { cwd: dir })
+  execSync(`yarn pack --filename ${outputPath}`, { cwd: dir, stdio: 'inherit' })
   tar.extract({ file: outputPath, cwd: tmpdir.name, sync: true })
   fs.unlinkSync(outputPath)
   return tmpdir.name
@@ -104,11 +98,27 @@ export async function pack({ workspaces, cwd, dir, filename }: PackOptions) {
     resolve(workspaceName)
   }
 
-  for (const workspace of deps.values()) {
+  const graph: [string, string][] = []
+
+  for (const [workspaceName, workspace] of deps) {
+    for (const dep of workspace.workspaceDependencies) {
+      graph.push([dep, workspaceName])
+    }
+  }
+
+  const sortedWorkspaces = toposort(graph)
+  for (const workspaceName of deps.keys()) {
+    if (sortedWorkspaces.indexOf(workspaceName) === -1) {
+      sortedWorkspaces.unshift(workspaceName)
+    }
+  }
+
+  for (const workspaceName of sortedWorkspaces) {
+    const workspace = result[workspaceName]
     const pkgPath = path.resolve(cwd, workspace.location)
-    const result = packPackage(pkgPath)
-    const o = path.resolve(retPkg, workspace.location)
-    moveDir(path.resolve(result, 'package'), o)
+    const packedPath = packPackage(pkgPath)
+    const outputPath = path.resolve(retPkg, workspace.location)
+    moveDir(path.resolve(packedPath, 'package'), outputPath)
   }
 
   const name = pkg.name[0] === '@'
@@ -117,7 +127,7 @@ export async function pack({ workspaces, cwd, dir, filename }: PackOptions) {
     : pkg.name
 
   if (dir) {
-    await renameSync(retPkg, dir)
+    fs.renameSync(ret, dir)
     return
   }
 
