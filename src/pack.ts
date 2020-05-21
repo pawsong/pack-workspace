@@ -6,6 +6,7 @@ import tmp from 'tmp'
 import mkdirp from 'mkdirp'
 import rimraf from 'rimraf'
 import stripAnsi from 'strip-ansi'
+import mv from 'mv'
 
 interface PackOptions {
   workspaces: string[]
@@ -26,9 +27,15 @@ function generateRandomString() {
   return Math.random().toString(36).substring(7)
 }
 
+function renameSync(from: string, to: string) {
+  return new Promise((resolve, reject) => {
+    mv(from, to, err => err ? reject(err) : resolve())
+  })
+}
+
 function moveDir(from: string, to: string) {
   mkdirp.sync(path.resolve(to, '..'))
-  fs.renameSync(from, to)
+  return renameSync(from, to)
 }
 
 function packPackage(dir: string) {
@@ -110,7 +117,7 @@ export async function pack({ workspaces, cwd, dir, filename }: PackOptions) {
     : pkg.name
 
   if (dir) {
-    fs.renameSync(retPkg, dir)
+    await renameSync(retPkg, dir)
     return
   }
 
